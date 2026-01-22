@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Store House | Smart Finance</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #050505;
+            --bg-card: #141416;
+            --bg-input: #1f1f22;
+            --text-main: #ffffff;
+            --text-muted: #9ba1a6;
+            
+            /* Flat Colors */
+            --c-green: #2ecc71;
+            --c-blue: #3498db;
+            --c-purple: #9b59b6;
+            --c-red: #e74c3c;
+            
+            --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 80px;
+        }
+
+        /* --- SPLASH SCREEN --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.6s ease-out;
+        }
+        .splash-logo { width: 90px; height: 90px; margin-bottom: 20px; animation: pulse 2s infinite; fill: var(--c-green); }
+        .splash-text { font-size: 1.8rem; font-weight: 700; letter-spacing: 1px; opacity: 0; animation: fadeUp 0.8s forwards 0.3s; }
+
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- LAYOUT --- */
+        .app-container {
+            max-width: 900px; margin: 0 auto; padding: 20px;
+            opacity: 0; transform: translateY(30px);
+            transition: all 0.8s var(--ease-smooth);
+        }
+        .app-loaded { opacity: 1; transform: translateY(0); }
+
+        /* --- HEADER --- */
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-top: 10px; }
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .logo-svg { width: 42px; height: 42px; fill: var(--c-green); }
+        h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
+        
+        .action-group { display: flex; gap: 10px; }
+        .action-btn {
+            background: #1f1f22; color: var(--c-blue); border: 1px solid #333; padding: 10px 18px;
+            border-radius: 12px; font-weight: 500; cursor: pointer; font-size: 0.85rem;
+            transition: all 0.2s; font-family: 'Outfit', sans-serif;
+        }
+        .action-btn:active { transform: scale(0.95); background: #333; }
+        .btn-reset { color: var(--c-red); border-color: #333; }
+
+        /* --- CARDS & FORMS --- */
+        .card { 
+            background: var(--bg-card); border-radius: 24px; padding: 26px; margin-bottom: 24px; 
+            border: 1px solid #222; 
+        }
+        
+        .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .input-block { margin-bottom: 0; }
+        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
+        
+        input, select {
+            width: 100%; background: var(--bg-input); border: 1px solid #333; color: white;
+            padding: 16px; border-radius: 16px; font-size: 1.1rem; font-weight: 500;
+            font-family: 'Outfit', sans-serif; transition: border-color 0.3s; appearance: none;
+        }
+        input:focus, select:focus { border-color: var(--c-blue); }
+        
+        .freq-selector { margin-top: 10px; }
+        select { 
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239ba1a6%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); 
+            background-repeat: no-repeat; background-position: right 16px center; background-size: 10px; 
+            cursor: pointer;
+        }
+
+        .btn-main {
+            width: 100%; padding: 18px; border-radius: 16px; border: none;
+            font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 20px;
+            transition: all 0.3s ease; font-family: 'Outfit', sans-serif;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-main:active { transform: scale(0.98); }
+        .btn-green { background: var(--c-green); color: #000; }
+        .btn-red { background: var(--c-red); color: white; }
+
+        /* --- RINGS DASHBOARD --- */
+        .rings-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .ring-card {
+            background: var(--bg-card); border-radius: 24px; padding: 20px 10px;
+            display: flex; flex-direction: column; align-items: center; position: relative;
+            border: 1px solid #222;
+        }
+        
+        .svg-ring { width: 100px; height: 100px; transform: rotate(-90deg); margin-bottom: 10px; }
+        circle { fill: none; stroke-width: 8; stroke-linecap: round; }
+        .c-track { stroke: #252525; }
+        .c-prog { 
+            stroke-dasharray: 251; stroke-dashoffset: 251; 
+            transition: stroke-dashoffset 1.8s var(--ease-elastic); 
+        }
+        
+        .ring-data { position: absolute; top: 70px; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%; }
+        .ring-pct { font-size: 1.2rem; font-weight: 700; display: block; }
+        .ring-lbl { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; margin-top: 5px;}
+        .ring-val { font-size: 1.1rem; font-weight: 600; letter-spacing: -0.5px; }
+
+        /* --- CHART & LIST --- */
+        .analytics-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .chart-box { height: 260px; position: relative; width: 100%; }
+        
+        .history-list { list-style: none; margin-top: 10px; }
+        .history-item {
+            display: flex; justify-content: space-between; align-items: center; padding: 18px 0;
+            border-bottom: 1px solid #222; opacity: 0; transform: translateX(-20px);
+            animation: slideIn 0.5s var(--ease-smooth) forwards;
+        }
+        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+
+        .h-left h4 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+        .h-left span { font-size: 0.8rem; color: var(--text-muted); background: #222; padding: 4px 8px; border-radius: 6px; }
+        .h-amt { font-weight: 700; font-size: 1.1rem; color: var(--text-main); }
+        .del-btn { color: var(--text-muted); background: none; border: none; margin-left: 15px; font-size: 1.4rem; cursor: pointer; transition: color 0.2s; }
+        .del-btn:hover { color: var(--c-red); }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 900px) { .analytics-wrapper { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .rings-grid { grid-template-columns: 1fr 1fr; gap: 15px; } .setup-grid { grid-template-columns: 1fr; } }
+
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <svg class="splash-logo" viewBox="0 0 24 24">
+            <path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2zm0 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+        </svg>
+        <div class="splash-text">STORE HOUSE</div>
+    </div>
+
+    <div class="app-container" id="app">
+        
+        <header>
+            <div class="brand">
+                <svg class="logo-svg" viewBox="0 0 24 24">
+                    <path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2zm0 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+                </svg>
+                <div>
+                    <h1>Store House</h1>
+                    <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;" id="current-date">Loading...</span>
+                </div>
+            </div>
+            <div class="action-group">
+                <button class="action-btn" onclick="sys.generatePDF()">Export PDF</button>
+                <button class="action-btn btn-reset" onclick="sys.reset()">Reset</button>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="setup-grid">
+                <div class="input-block">
+                    <label>Income Amount</label>
+                    <input type="number" id="inp-income" placeholder="0.00">
+                    
+                    <div class="freq-selector">
+                        <label style="font-size: 0.75rem; margin-top:10px;">Income Frequency</label>
+                        <select id="inp-freq">
+                            <option value="1">Monthly</option>
+                            <option value="12">Yearly (Auto-divides by 12)</option>
+                            <option value="0.0328">Daily (Auto-multiplies by 30)</option>
+                            <option value="0.23">Weekly (Auto-multiplies by 4.3)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-block">
+                    <label>Monthly Savings Goal</label>
+                    <input type="number" id="inp-goal" placeholder="Target Savings">
+                    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:10px; line-height:1.4">
+                        Set a realistic monthly target. We will track your progress in real-time.
+                    </p>
+                </div>
+            </div>
+            <button id="btn-update" class="btn-main btn-green" onclick="app.updateSettings()">Update Profile</button>
+        </div>
+
+        <div class="rings-grid">
+            <div class="ring-card">
+                <svg class="svg-ring" viewBox="0 0 100 100">
+                    <circle class="c-track" cx="50" cy="50" r="40"></circle>
+                    <circle id="ring-inc" class="c-prog" cx="50" cy="50" r="40" stroke="var(--c-green)"></circle>
+                </svg>
+                <div class="ring-data"><span class="ring-pct" id="pct-inc">0%</span></div>
+                <span class="ring-lbl">Budget</span>
+                <div class="ring-val" style="color:var(--c-green)" id="val-inc">₹0</div>
+            </div>
+
+            <div class="ring-card">
+                <svg class="svg-ring" viewBox="0 0 100 100">
+                    <circle class="c-track" cx="50" cy="50" r="40"></circle>
+                    <circle id="ring-sav" class="c-prog" cx="50" cy="50" r="40" stroke="var(--c-blue)"></circle>
+                </svg>
+                <div class="ring-data"><span class="ring-pct" id="pct-sav">0%</span></div>
+                <span class="ring-lbl">Saved</span>
+                <div class="ring-val" style="color:var(--c-blue)" id="val-sav">₹0</div>
+            </div>
+
+            <div class="ring-card">
+                <svg class="svg-ring" viewBox="0 0 100 100">
+                    <circle class="c-track" cx="50" cy="50" r="40"></circle>
+                    <circle id="ring-exp" class="c-prog" cx="50" cy="50" r="40" stroke="var(--c-red)"></circle>
+                </svg>
+                <div class="ring-data"><span class="ring-pct" id="pct-exp">0%</span></div>
+                <span class="ring-lbl">Spent</span>
+                <div class="ring-val" style="color:var(--c-red)" id="val-exp">₹0</div>
+            </div>
+
+             <div class="ring-card">
+                <svg class="svg-ring" viewBox="0 0 100 100">
+                    <circle class="c-track" cx="50" cy="50" r="40"></circle>
+                    <circle id="ring-bal" class="c-prog" cx="50" cy="50" r="40" stroke="var(--c-purple)"></circle>
+                </svg>
+                <div class="ring-data"><span class="ring-pct" id="pct-bal">0%</span></div>
+                <span class="ring-lbl">Balance</span>
+                <div class="ring-val" style="color:var(--c-purple)" id="val-bal">₹0</div>
+            </div>
+        </div>
+
+        <div class="analytics-wrapper">
+            <div class="card">
+                <h3 style="margin-bottom:20px; font-weight:700;">Add Transaction</h3>
+                <div class="input-block">
+                    <label>Description</label>
+                    <input type="text" id="exp-desc" placeholder="e.g. Netflix, Rent, Coffee" style="margin-bottom:15px;">
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                        <div>
+                            <label>Amount (₹)</label>
+                            <input type="number" id="exp-amt" placeholder="0">
+                        </div>
+                        <div>
+                            <label>Category</label>
+                            <select id="exp-cat">
+                                <option value="Food">Food & Dining</option>
+                                <option value="Transport">Transport</option>
+                                <option value="Housing">Housing</option>
+                                <option value="Shopping">Shopping</option>
+                                <option value="Entertainment">Entertainment</option>
+                                <option value="Health">Health</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-main btn-red" onclick="app.addExpense()">Log Expense</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom:20px; font-weight:700;">Spending Breakdown</h3>
+                <div class="chart-box">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #222; padding-bottom:15px;">
+                <h3 style="font-weight:700;">History</h3>
+                <span style="font-size:0.8rem; color:var(--text-muted)">Recent transactions</span>
+            </div>
+            <ul class="history-list" id="tx-list">
+                </ul>
+        </div>
+
+    </div>
+
+    <script>
+        /* --- SYSTEM UTILITIES --- */
+        const sys = {
+            fmt: (n) => '₹' + n.toLocaleString('en-IN'),
+            storageKey: 'storehouse_pro_v5', 
+            
+            init: () => {
+                setTimeout(() => {
+                    document.getElementById('splash-screen').style.opacity = '0';
+                    document.getElementById('app').classList.add('app-loaded');
+                    setTimeout(() => document.getElementById('splash-screen').remove(), 600);
+                }, 1800);
+
+                const d = new Date();
+                document.getElementById('current-date').innerText = d.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'}).toUpperCase();
+
+                app.load();
+            },
+
+            reset: () => {
+                if(confirm("Confirm Factory Reset: This will delete all financial data.")) {
+                    localStorage.removeItem(sys.storageKey);
+                    location.reload();
+                }
+            },
+
+            // --- PDF GENERATOR (Fixed: Uses 'Rs.' to prevent encoding errors) ---
+            generatePDF: () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(24);
+                doc.setTextColor(40, 40, 40);
+                doc.text("Store House Report", 14, 22);
+                
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
+                doc.setDrawColor(200, 200, 200);
+                doc.line(14, 32, 196, 32);
+
+                const inc = app.calcMonthlyIncome();
+                const exp = app.calcTotalExpenses();
+                const bal = inc - exp;
+
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                
+                // Helper to format currency for PDF safely
+                const fmtPdf = (n) => 'Rs. ' + n.toLocaleString('en-IN');
+
+                doc.text(`Total Income: ${fmtPdf(inc)}`, 14, 45);
+                doc.text(`Total Expenses: ${fmtPdf(exp)}`, 14, 52);
+                doc.text(`Balance: ${fmtPdf(bal)}`, 14, 59);
+
+                const tableData = app.data.expenses.map(e => [e.date, e.cat, e.desc, fmtPdf(e.amt)]);
+
+                doc.autoTable({
+                    startY: 70,
+                    head: [['Date', 'Category', 'Description', 'Amount']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [40, 40, 40], textColor: [255, 255, 255], fontStyle: 'bold' },
+                    styles: { font: 'helvetica', textColor: [40, 40, 40] },
+                    alternateRowStyles: { fillColor: [245, 245, 245] }
+                });
+
+                doc.save("StoreHouse_Statement.pdf");
+            },
+
+            animateNum: (id, endVal, isCurrency, isCap) => {
+                const el = document.getElementById(id);
+                const duration = 1500;
+                const start = 0; 
+                let startTime = null;
+                
+                let target = endVal;
+                if(isCap && target > 100) target = 100;
+
+                function step(timestamp) {
+                    if (!startTime) startTime = timestamp;
+                    const progress = Math.min((timestamp - startTime) / duration, 1);
+                    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                    
+                    const val = Math.floor(start + (target - start) * ease);
+                    el.innerText = isCurrency ? sys.fmt(val) : val + '%';
+                    
+                    if (progress < 1) window.requestAnimationFrame(step);
+                }
+                window.requestAnimationFrame(step);
+            }
+        };
+
+        /* --- APP LOGIC --- */
+        let chartInst = null;
+        const app = {
+            data: {
+                rawIncome: 0,
+                freq: 1, 
+                goal: 0,
+                expenses: []
+            },
+            
+            load: () => {
+                const s = localStorage.getItem(sys.storageKey);
+                if(s) app.data = JSON.parse(s);
+                
+                document.getElementById('inp-income').value = app.data.rawIncome || '';
+                document.getElementById('inp-freq').value = app.data.freq || 1;
+                document.getElementById('inp-goal').value = app.data.goal || '';
+
+                app.render();
+            },
+
+            save: () => {
+                localStorage.setItem(sys.storageKey, JSON.stringify(app.data));
+                app.render();
+            },
+
+            calcMonthlyIncome: () => {
+                const val = parseFloat(app.data.rawIncome) || 0;
+                const type = parseFloat(app.data.freq);
+                if (type === 12) return val / 12;
+                if (type === 1) return val;
+                if (type === 0.0328) return val * 30;
+                if (type === 0.23) return val * 4.3;
+                return val;
+            },
+
+            calcTotalExpenses: () => app.data.expenses.reduce((a, b) => a + b.amt, 0),
+
+            updateSettings: () => {
+                app.data.rawIncome = parseFloat(document.getElementById('inp-income').value);
+                app.data.freq = parseFloat(document.getElementById('inp-freq').value);
+                app.data.goal = parseFloat(document.getElementById('inp-goal').value);
+                app.save();
+                
+                // NO ALERT - Subtle Button Feedback
+                const btn = document.getElementById('btn-update');
+                const prevText = btn.innerText;
+                const prevBg = btn.style.background;
+                const prevCol = btn.style.color;
+                
+                btn.innerText = "Saved ✓";
+                btn.style.background = "#ffffff";
+                btn.style.color = "#000000";
+                
+                setTimeout(() => {
+                    btn.innerText = prevText;
+                    btn.style.background = prevBg;
+                    btn.style.color = prevCol;
+                }, 1500);
+            },
+
+            addExpense: () => {
+                const desc = document.getElementById('exp-desc').value;
+                const amt = parseFloat(document.getElementById('exp-amt').value);
+                const cat = document.getElementById('exp-cat').value;
+
+                if(!desc || !amt) return alert("Please enter description and amount");
+
+                app.data.expenses.unshift({
+                    id: Date.now(),
+                    desc, amt, cat,
+                    date: new Date().toLocaleDateString('en-IN')
+                });
+                
+                document.getElementById('exp-desc').value = '';
+                document.getElementById('exp-amt').value = '';
+                
+                app.save();
+            },
+
+            deleteTx: (id) => {
+                if(confirm("Delete this transaction?")) {
+                    app.data.expenses = app.data.expenses.filter(e => e.id !== id);
+                    app.save();
+                }
+            },
+
+            render: () => {
+                const mIncome = app.calcMonthlyIncome();
+                const totalExp = app.calcTotalExpenses();
+                const balance = mIncome - totalExp;
+                const goal = app.data.goal || 1; 
+
+                // 1. Update Values
+                sys.animateNum('val-inc', mIncome, true, false);
+                sys.animateNum('val-sav', balance, true, false); 
+                sys.animateNum('val-exp', totalExp, true, false);
+                sys.animateNum('val-bal', balance, true, false);
+
+                // 2. Ring Logic
+                const setRing = (id, pctId, val, max, capAt100) => {
+                    let pct = max > 0 ? (val / max) * 100 : 0;
+                    
+                    const visualPct = Math.min(Math.max(pct, 0), 100); 
+                    const offset = 251 - (visualPct/100)*251;
+                    document.getElementById(id).style.strokeDashoffset = offset;
+                    
+                    let textPct = Math.round(pct);
+                    if(capAt100 && textPct > 100) textPct = 100;
+
+                    document.getElementById(pctId).innerText = textPct + '%';
+                };
+
+                // FIXED: Income Ring now 0% if no income
+                setRing('ring-inc', 'pct-inc', mIncome > 0 ? 100 : 0, 100, false); 
+                
+                setRing('ring-sav', 'pct-sav', balance, goal, true);
+                setRing('ring-exp', 'pct-exp', totalExp, mIncome, false); 
+                setRing('ring-bal', 'pct-bal', balance, mIncome, false);
+
+                // 3. Render List
+                const list = document.getElementById('tx-list');
+                list.innerHTML = app.data.expenses.map((e, index) => `
+                    <li class="history-item" style="animation-delay: ${index * 0.05}s">
+                        <div class="h-left">
+                            <h4>${e.desc}</h4>
+                            <span>${e.cat} • ${e.date}</span>
+                        </div>
+                        <div style="display:flex; align-items:center">
+                            <span class="h-amt">-${sys.fmt(e.amt)}</span>
+                            <button class="del-btn" onclick="app.deleteTx(${e.id})">&times;</button>
+                        </div>
+                    </li>
+                `).join('');
+
+                // 4. Render Chart
+                app.renderChart();
+            },
+
+            renderChart: () => {
+                const ctx = document.getElementById('mainChart').getContext('2d');
+                
+                const cats = {};
+                app.data.expenses.forEach(e => cats[e.cat] = (cats[e.cat] || 0) + e.amt);
+                const labels = Object.keys(cats);
+                const data = Object.values(cats);
+
+                const colors = {
+                    'Food': '#e74c3c', 'Transport': '#f1c40f', 'Housing': '#2ecc71',
+                    'Shopping': '#9b59b6', 'Entertainment': '#3498db', 'Health': '#1abc9c', 'Other': '#95a5a6'
+                };
+
+                if(chartInst) chartInst.destroy();
+                
+                if(labels.length === 0) {
+                     chartInst = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: { labels:['No Data'], datasets:[{data:[1], backgroundColor:['#1f1f22'], borderWidth:0}] },
+                        options: { events:[], cutout:'75%' }
+                     });
+                     return;
+                }
+
+                chartInst = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: labels.map(l => colors[l] || '#888'),
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { animateScale: true, animateRotate: true },
+                        cutout: '70%',
+                        plugins: {
+                            legend: { position: 'right', labels: { color: 'white', boxWidth:12, font:{family:'Outfit'} } }
+                        }
+                    }
+                });
+            }
+        };
+
+        window.onload = sys.init;
+    </script>
+</body>
+</html>
